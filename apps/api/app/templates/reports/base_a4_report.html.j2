@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>{{ project.title }}</title>
+  <style>{{ print_css }}</style>
+</head>
+<body>
+  <table class="running-header">
+    <tr>
+      <td style="width: 48%;">{{ project.client_name }}</td>
+      <td style="width: 52%; text-align: right;">{{ project.contractor_name }}</td>
+    </tr>
+  </table>
+
+  <div style="text-align:center; padding: 60px 20px;">
+    <div style="font-size: 16pt; font-weight: 700;">{{ ast.program_title or project.document_type }}</div>
+    <div style="font-size: 20pt; font-weight: 700; margin-top: 16px;">{{ project.title }}</div>
+    {% if ast.report_subtitle or project.subtitle %}
+    <div style="font-size: 15pt; font-weight: 700; margin-top: 8px;">{{ ast.report_subtitle or project.subtitle }}</div>
+    {% endif %}
+    <div style="font-size: 12pt; font-weight: 700; margin-top: 24px;">Revision: {{ project.revision_number }}</div>
+    <div style="font-size: 10pt; font-weight: 700; margin-top: 16px;">{{ project.client_name or 'Client' }} Document Ref. {{ project.client_ref_code or 'Pending' }}<br/>{{ project.contractor_name or 'Contractor' }} Document Ref. {{ project.contractor_ref_code or 'Pending' }}</div>
+  </div>
+
+  <table class="data-table">
+    <tbody>
+      {% for rev in project.revision_history_json %}
+      <tr>
+        <td>{{ rev.rev }}</td><td>{{ rev.date }}</td><td>{{ rev.description }}</td>
+        <td>{{ rev.prepared_by }}</td><td>{{ rev.checked_by }}</td><td>{{ rev.approved_by }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <thead>
+      <tr>
+        <th>Rev</th><th>Date</th><th>Reason for Revision</th><th>Prepared</th><th>Checked</th><th>Approved</th>
+      </tr>
+    </thead>
+  </table>
+
+  {% for sec in ast.sections %}
+  <div class="page-break"></div>
+  <h1 class="sec-title">{{ sec.section_number }} {{ sec.title }}</h1>
+  <div>{{ sec.html_content | safe }}</div>
+
+  {% for tbl in sec.tables or [] %}
+  <h3>{{ tbl.table_number or ('Table ' ~ loop.index) }}: {{ tbl.title }}</h3>
+  <table class="data-table">
+    <thead>
+      {% if tbl.multi_header %}
+      {% for hrow in tbl.multi_header %}
+      <tr>
+        {% for cell in hrow %}
+        <th colspan="{{ cell.colspan or 1 }}" rowspan="{{ cell.rowspan or 1 }}" style="text-align:center;">{{ cell.label }}</th>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+      {% else %}
+      <tr>
+        {% for col in tbl.columns %}
+        <th>{{ col }}</th>
+        {% endfor %}
+      </tr>
+      {% endif %}
+    </thead>
+    <tbody>
+      {% for row in tbl.rows %}
+      <tr>
+        {% for cell in row %}
+        <td>{{ cell }}</td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% if tbl.footnote %}<p style="font-size:8pt; font-style:italic;">{{ tbl.footnote }}</p>{% endif %}
+  {% endfor %}
+
+  {% for ph in sec.placeholders or [] %}
+  <div class="figure-box">
+    {% if ph.secondary_url and ph.layout == 'side_by_side' %}
+    <div style="display:flex; gap:10px; justify-content:center;">
+      <img src="{{ ph.resolved_url }}" alt="{{ ph.caption }}" style="width:48%; height:auto;" />
+      <img src="{{ ph.secondary_url }}" alt="{{ ph.secondary_caption or ph.caption }}" style="width:48%; height:auto;" />
+    </div>
+    {% elif ph.secondary_url %}
+    <img src="{{ ph.resolved_url }}" alt="{{ ph.caption }}" style="width:100%; height:auto; margin-bottom:6px;" />
+    <img src="{{ ph.secondary_url }}" alt="{{ ph.caption }}" style="width:100%; height:auto;" />
+    {% elif ph.resolved_url %}
+    <img src="{{ ph.resolved_url }}" alt="{{ ph.caption or ph.prompt }}" style="width:100%; max-width:640px; height:auto;" />
+    {% else %}
+    <div style="font-size: 9pt; color: #71717A;">[{{ ph.caption or ph.prompt }}]</div>
+    {% endif %}
+    <div class="figure-caption">{{ ph.caption or (ph.figure_number ~ ': ' ~ ph.prompt) }}</div>
+  </div>
+  {% endfor %}
+  {% endfor %}
+</body>
+</html>

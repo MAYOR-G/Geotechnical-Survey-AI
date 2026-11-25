@@ -1,0 +1,48 @@
+# Dependencies & Virtual Environments
+node_modules/
+**/node_modules/
+.venv/
+**/.venv/
+venv/
+ENV/
+
+# Next.js & TypeScript Build Outputs
+.next/
+**/.next/
+out/
+build/
+dist/
+*.tsbuildinfo
+
+# Python Cache & Bytecode
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+**/.pytest_cache/
+
+# Environment Secrets (keep .env.example tracked)
+.env
+.env.*
+!.env.example
+apps/web/.env.local
+apps/api/.env
+
+# Local Databases & Runtime Storage
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+apps/api/storage/branding-assets/*
+apps/api/storage/compiled-exports/*
+apps/api/storage/equipment-gallery/*
+apps/api/storage/project-inputs/*
+!apps/api/storage/**/.gitkeep
+
+# macOS & Editor Metadata
+.DS_Store
+**/.DS_Store
+.idea/
+.vscode/
