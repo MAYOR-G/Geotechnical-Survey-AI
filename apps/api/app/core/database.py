@@ -8,13 +8,16 @@ class Base(DeclarativeBase):
     pass
 
 
-connect_args = {}
+connect_args: dict = {}
 if settings.DATABASE_URL.startswith("sqlite"):
     connect_args = {"check_same_thread": False}
+elif "pooler.supabase.com:6543" in settings.DATABASE_URL or "pgbouncer" in settings.DATABASE_URL:
+    connect_args = {"statement_cache_size": 0}
 
 engine = create_async_engine(
     settings.DATABASE_URL,
     echo=False,
+    pool_pre_ping=not settings.DATABASE_URL.startswith("sqlite"),
     connect_args=connect_args,
 )
 
