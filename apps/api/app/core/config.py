@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 from typing import List
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -35,6 +36,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = f"sqlite+aiosqlite:///{API_DIR / 'geotech_studio.db'}"
     SUPABASE_URL: str = ""
     SUPABASE_SERVICE_ROLE_KEY: str = ""
+    SUPABASE_POOLER_HOST: str = "aws-0-eu-central-1.pooler.supabase.com"
 
     OPENROUTER_API_KEY: str = ""
     OPENROUTER_DRAFTING_MODEL: str = "anthropic/claude-3.5-sonnet"
@@ -54,11 +56,25 @@ class Settings(BaseSettings):
             rel_part = self.DATABASE_URL[len(sqlite_rel_prefix) :]
             abs_db = (API_DIR / rel_part).resolve()
             self.DATABASE_URL = f"sqlite+aiosqlite:///{abs_db}"
-        # 2. Auto-upgrade standard postgres:// or postgresql:// URLs to asyncpg for Render/Supabase
-        elif self.DATABASE_URL.startswith("postgres://"):
+            return self
+
+        # 2. Auto-upgrade standard postgres:// or postgresql:// URLs to asyncpg
+        if self.DATABASE_URL.startswith("postgres://"):
             self.DATABASE_URL = "postgresql+asyncpg://" + self.DATABASE_URL[len("postgres://") :]
         elif self.DATABASE_URL.startswith("postgresql://"):
             self.DATABASE_URL = "postgresql+asyncpg://" + self.DATABASE_URL[len("postgresql://") :]
+
+        # 3. Auto-upgrade IPv6-only Supabase Direct URL (db.<ref>.supabase.co) to IPv4 Session Pooler
+        #    so IPv4-only container hosts like Render never fail with [Errno 101] Network is unreachable
+        direct_match = re.match(
+            r"^(postgresql\+asyncpg://)postgres:([^@]+)@db\.([a-z0-9]+)\.supabase\.co(?::\d+)?(/.*)$",
+            self.DATABASE_URL,
+        )
+        if direct_match:
+            scheme, password, project_ref, path_part = direct_match.groups()
+            pooler_host = (self.SUPABASE_POOLER_HOST or "aws-0-eu-central-1.pooler.supabase.com").strip()
+            self.DATABASE_URL = f"{scheme}postgres.{project_ref}:{password}@{pooler_host}:5432{path_part}"
+
         return self
 
     @property
